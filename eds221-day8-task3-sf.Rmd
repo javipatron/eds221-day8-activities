@@ -1,0 +1,181 @@
+---
+title: "eds221-day8-activities"
+author: "Javier Patron"
+date: "2022-08-17"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(here)
+library(paletteer)
+library(janitor)
+library(skimr)
+library(ggrepel)
+```
+
+
+```{r}
+space_launches <- read_csv(here::here("data", "space_launches.csv"))
+```
+
+
+## Make the ugliest graph possible
+
+Some ideas:
+
+fonts
+background images
+coord_*
+panel / plot / geom / text colors
+point / line patterns and shapes
+gridline updates
+tickmark frequency
+angles
+### Graph 1
+
+```{r}
+
+d_love_graph <- ggplot(space_launches, aes(y = launch_year)) +
+  geom_histogram() +
+  labs(title = "        ¡¡ CRAAZY STUPIDD LOOOVE !!",
+       x = "/&%$£¢∞§¶••¶∞¢%&/()/&%$h",
+       y = "“£¢∞§¶•ªºª•¶§∂ƒ©©ƒ") +
+  theme(panel.grid = element_line(color = "red"),
+        panel.grid.minor.y = element_blank(),
+        axis.title.x = element_text(color = "orange"),
+        axis.title.y = element_text(color = "magenta"),
+        axis.text.y = element_text(color = "green"),
+        axis.text.x = element_text(color = "blue"),
+        text = element_text (size = 20),
+        title = element_text(size = 15),
+        panel.background = element_rect(color = "red", fill = "gray10")) +
+  annotate("text", x = 100, y = 2014, label = " <- ß∂ƒ©@∑€®†¥ ->", color = "lightblue") +
+  annotate("text", x = 100, y = 1980, label = " --> UPSIDE DOWN <--", color = "white") +
+  annotate("text", x = 250, y = 2005, label = " LOVE ", color = "pink", size = 10) +
+  annotate("text", x = 280, y = 2015, label = " I ", color = "pink", size = 10) +
+  annotate("text", x = 320, y = 2017, label = " Y ", color = "pink", size = 8) +
+  annotate("text", x = 320, y = 2010.5, label = " O ", color = "pink", size = 8) +
+  annotate("text", x = 320, y = 2003.5, label = " U ", color = "pink", size = 8) +
+  geom_vline(xintercept = 30, linetype = "dashed", color = "orange", size = 1) +
+  geom_vline(xintercept = 175, linetype = "dashed", color = "orange", size = 1) +
+  geom_vline(xintercept = 300, linetype = "dashed", color = "orange", size = 1)
+  
+d_love_graph
+```
+
+```{r}
+ggsave(plot = d_love_graph , here::here("data", "love.jpg"))
+```
+
+graph #2
+
+```{r}
+
+ggplot(space_launches, aes(x = launch_year)) +
+  geom_histogram(data = subset(space_launches, launch_year == 1993, fill="red")) +
+  geom_histogram(data = subset(space_launches, launch_year == 1996, fill="orange")) +
+  geom_histogram(data = subset(space_launches, launch_year == 1998, fill="green"))
+
+```
+
+graph # 3
+
+graph# 4
+
+
+
+Task 2: Wrangling practice with the SF Greenhouse Gas data
+Download the San_Francisco_Communitywide_Greenhouse_Gas_Inventory.csv file (I’ll put this in Slack). Information about the data is available here.
+
+
+```{r}
+san_francisco <- read_csv(here::here("data", "San_Francisco_Communitywide_Greenhouse_Gas_Inventory.csv")) |> 
+  clean_names()
+
+sf_summary <- san_francisco |> 
+  group_by(sector_general) |> 
+  summarize(tot_annual = sum(emissions_mt_co2e, na.rm = TRUE))
+```
+
+
+Read in the SF emissions dataset, then complete the following:
+
+Create a summary table of total annual greenhouse gas emissions (only from Emissions_mtCO2e column) by sector_general
+
+Create a summary table of total annual greenhouse gas emissions (only from Emissions_mtCO2e column) by year and commodity type
+
+Create a subset of the data that only contains observations from 2005 on, only for observations where Sector_Detail2 contains the pattern “PG&E”, then limit to columns Calendar_Year, Sector_Detail2 and Emissions_mtCO2e.
+
+```{r}
+sf_filter <- san_francisco |> 
+  filter(calendar_year %in% 2005:2019,
+         str_detect(sector_detail2, pattern = "PG&E")) |> 
+  select(cols= c("calendar_year", "sector_detail2", "emissions_mt_co2e"))
+```
+
+
+Task 3: Do your data viz best
+Create a finalized graph (as perfect as you can make it) using the San Francisco GHG emissions dataset. You get to choose what you want to visualize. You can pick which variables & observations you’re interested in. You may want to do some wrangling / summarizing first.
+
+Once you’ve decided on what to plot, create the best graph that you can to communicate what’s going on with the data.
+
+Once you’re done, drop your best graph (as a .png or .jpg) into the course Slack channel.
+
+
+```{r}
+
+skim(san_francisco)
+
+
+sf_commodity <- san_francisco |> 
+  group_by(commodity_type) |> 
+  summarize(co2 = sum(emissions_mt_co2e, na.rm = TRUE))
+
+sf_ <- san_francisco |> 
+  group_by(sector_gpc, calendar_year) |> 
+  summarize(co2 = sum(emissions_mt_co2e, na.rm = TRUE),
+            bio_co2 = sum(biogenic_emissions_mt_co2e, na.rm = TRUE),
+            quantity = sum(quantity),
+            units = unique(quantity_units)) |> 
+  mutate(co2_trillion = co2 /1000000)
+
+
+
+sf_[sf_ == "Agriculture, Forestry and Other Land Use"] <- "Land Use"
+
+
+
+
+```
+
+
+
+
+```{r}
+
+sf_line <- ggplot(sf_, aes(x = calendar_year, y = co2_trillion)) +
+  geom_line(aes(color = sector_gpc)) +
+  labs (title = "Pollution Prevention Greenhouse Gas by Sector" ,
+        subtitle = "San Francisco, CA ",
+        x = "Time (yrs)",
+        y = "Pollution Prevention Greenhouse Gas (Tons Co2)") +
+    theme(panel.grid = element_line(color = "gray"),
+        panel.grid.minor.y = element_blank(),
+        axis.title = element_text(color = "darkblue"),
+        text = element_text (size = 12),
+        panel.background = element_rect(color = "gray", fill = "gray95"))
+
+sf_line
+```
+
+
+```{r}
+ggsave(plot = sf_line, here::here("data", "GHG.jpg"))
+```
+
+
